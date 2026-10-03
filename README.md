@@ -433,7 +433,7 @@ Add factual fields to the session summary:
 - Away time
 - Unaccounted time
 
-Do not turn these into a productivity score. The user should be able to see what was recorded and correct ambiguous states.
+Without turning these into a productivity score, the user should be able to see what was recorded and correct ambiguous states.
 
 ### V3.4 — Semi-automatic card generation
 
