@@ -421,7 +421,7 @@ Add an append-only event stream for:
 - Session resumed
 - Session finished
 
-Keep the existing session summary as the user-facing record. Events are the data layer for future analysis, not a new dashboard.
+Keeping the existing session summary as the user-facing record. Events are the data layer for future analysis, not a new dashboard.
 
 ### V3.3 — Unaccounted time
 
