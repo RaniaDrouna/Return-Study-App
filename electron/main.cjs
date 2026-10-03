@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu } = require('electron');
 const path = require('path');
 
 const APP_NAME = 'Return';
@@ -28,6 +28,34 @@ const ELECTRON_CSS = `
 `;
 
 let mainWindow = null;
+let tray = null;
+let isQuitting = false; // true only when the user picks Quit from the tray
+
+function showWindow() {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+}
+
+function createTray() {
+    tray = new Tray(path.join(__dirname, 'icon.png'));
+    tray.setToolTip(`${APP_NAME} (reminders active)`);
+    tray.setContextMenu(
+        Menu.buildFromTemplate([
+            { label: `Open ${APP_NAME}`, click: showWindow },
+            { type: 'separator' },
+            {
+                label: 'Quit',
+                click: () => {
+                    isQuitting = true;
+                    app.quit();
+                },
+            },
+        ])
+    );
+    tray.on('click', showWindow);
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -45,7 +73,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.cjs'),
             contextIsolation: true,
             nodeIntegration: false,
-            backgroundThrottling: false, // timer keeps running accurately when minimized
+            backgroundThrottling: false, // timer keeps running accurately when hidden or minimized
             autoplayPolicy: 'no-user-gesture-required', // interface sounds (Web Audio) stay reliable
         },
     });
@@ -56,6 +84,14 @@ function createWindow() {
 
     mainWindow.webContents.on('dom-ready', () => {
         mainWindow.webContents.insertCSS(ELECTRON_CSS);
+    });
+
+    // Closing the window hides it to the tray so reminders keep running.
+    mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            mainWindow.hide();
+        }
     });
 
     mainWindow.on('closed', () => {
@@ -87,16 +123,12 @@ ipcMain.on('show-notification', (event, payload) => {
     const title = String((payload && payload.title) || APP_NAME);
     const body = String((payload && payload.body) || '');
     const notification = new Notification({ title, body, silent: true });
-    notification.on('click', () => {
-        if (!mainWindow) return;
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
-    });
+    notification.on('click', showWindow);
     notification.show();
 });
 
 // Window controls for the circles in the app's own top bar.
+// Close hides to the tray; use the tray menu to quit completely.
 ipcMain.on('window-minimize', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
 });
@@ -114,20 +146,20 @@ ipcMain.on('window-close', (event) => {
 if (!app.requestSingleInstanceLock()) {
     app.quit();
 } else {
-    app.on('second-instance', () => {
-        if (!mainWindow) return;
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.focus();
-    });
+    app.on('second-instance', showWindow);
 
     app.whenReady().then(() => {
         createWindow();
+        createTray();
         app.on('activate', () => {
             if (BrowserWindow.getAllWindows().length === 0) createWindow();
         });
     });
 }
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+app.on('before-quit', () => {
+    isQuitting = true;
 });
+
+// Stay alive in the tray when every window is hidden or closed.
+app.on('window-all-closed', () => {});
