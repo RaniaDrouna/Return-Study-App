@@ -472,7 +472,7 @@ Subject
     └── interruptions
 ```
 
-Do not add a database, authentication, or synchronization merely because the model can support it. Those choices should follow an actual need for backup, multiple devices, or shared access.
+Not adding a database, authentication, or synchronization. Those choices should follow an actual need for backup, multiple devices, or shared access.
 
 ---
 
