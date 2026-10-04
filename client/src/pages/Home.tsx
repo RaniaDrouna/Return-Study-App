@@ -93,6 +93,8 @@ function calculateCurrentStreak(sessions: Session[], minimumSeconds: number) {
   const qualifyingDays = new Set(Object.entries(secondsByDay).filter(([, seconds]) => seconds >= minimumSeconds).map(([date]) => date));
   let streak = 0;
   const cursor = new Date();
+  // Today still has time to qualify, so don't break the streak until a full day is missed
+  if (!qualifyingDays.has(toLocalDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
   while (qualifyingDays.has(toLocalDateKey(cursor))) { streak += 1; cursor.setDate(cursor.getDate() - 1); }
   return streak;
 }
@@ -289,7 +291,7 @@ function FocusView({ active, paused, subject, duration, elapsed, planned, starte
       <aside className="focus-rail">
         <div className="rail-card daily-card"><div className="card-label-row"><span className="eyebrow">Today</span><span className="muted">{progress}% of minimum</span></div><div className="rail-number">{formatShort(focusedToday)}</div><div className="mini-progress"><span style={{ width: `${progress}%` }} /></div><div className="rail-caption"><span>{settings.dailyMinimum}m daily minimum</span><span>{remainingTasks} tasks left</span></div></div>
         <div className="rail-card"><div className="card-label-row"><span className="eyebrow">This week</span><span className="muted">{weekProgress}%</span></div><div className="rail-number">{formatShort(focusedWeek)} <small>/ {settings.weeklyGoal}h</small></div><div className="week-ticks"><span /><span /><span /><span /><span /><span /><span /></div><div className="rail-caption"><span>Weekly volume</span><button onClick={() => onNavigate("history")}>View history <ChevronRight size={12} /></button></div></div>
-        <div className="rail-card streak-card"><div className="streak-orbit"><Flame size={21} /></div><div><span className="eyebrow">Streak</span><div className="streak-number">{streak}<small> days</small></div></div><div className="streak-rule">30m / day<br /><span>keeps it alive</span></div></div>
+        <div className="rail-card streak-card"><div className="streak-orbit"><Flame size={21} /></div><div><span className="eyebrow">Streak</span><div className="streak-number">{streak}<small> days</small></div></div><div className="streak-rule">{settings.dailyMinimum}m / day<br /><span>keeps it alive</span></div></div>
         <div className="rail-tasks"><div className="card-label-row"><span className="eyebrow">Next up</span><button className="text-link" onClick={() => onNavigate("tasks")}>All tasks <ChevronRight size={12} /></button></div>{nextTasks.length ? nextTasks.map((task, index) => <button className="rail-task" key={task.id} onClick={() => onNavigate("tasks")}><span className={`task-dot ${index === 0 ? "accent" : ""}`} />{task.title}<ChevronRight size={13} /></button>) : <button className="rail-task empty-rail-task" onClick={() => onNavigate("tasks")}><span className="task-dot" />No tasks yet — add one <ChevronRight size={13} /></button>}</div>
       </aside>
     </div>
